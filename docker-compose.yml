@@ -1,0 +1,53 @@
+version: '3.8'
+
+x-shared:
+  volumes:
+    data: &data_volume
+      - ./data:/app/data  # Access profile data saved by persona service
+  environment:
+    common_paths_env: &common_paths_env
+      PROFILE_PATH: '/app/data/profile.json'
+      ARTICLES_PATH: '/app/data/articles.json'
+      POSTS_PATH: '/app/data/posts.json'
+
+services:
+  persona:
+    build:
+      context: ./persona  # Path to the persona service Dockerfile
+      dockerfile: Dockerfile  # Specify the Dockerfile path
+    container_name: persona_service
+    volumes:
+      - ./data:/app/data
+    environment:
+      <<: *common_paths_env
+
+  web:
+    build:
+      context: ./web  # Set the build context to the parent directory
+      dockerfile: Dockerfile  # Specify the Dockerfile path
+    container_name: web_service
+    ports:
+      - "8000:8000"  # Map container's port to host for web access
+    depends_on:
+      - persona
+    volumes:
+      - ./data:/app/data
+    environment:
+      <<: *common_paths_env
+      PORT: 8080
+      GOOGLE_CUSTOM_SEARCH_API_KEY: 'AIzaSyAY1vjGeft8jREpabgTeIX9A-R5kqHFXjg'
+      GOOGLE_CUSTOM_SEARCH_ENGINE_ID: 'a198f8824f3664045'
+      NUMBER_OF_ARTICLES: 5
+
+  generator:
+    build:
+      context: ./generator  # Path to the generator service Dockerfile
+      dockerfile: Dockerfile  # Specify the Dockerfile path
+    container_name: generator_service
+    volumes:
+      - ./data:/app/data
+    environment:
+      <<: *common_paths_env
+      OPENAI_API_KEY: 'Enter your OpenAI API key'
+volumes:
+  data:  # Define a persistent volume (optional, if not using host-mounted)
